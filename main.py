@@ -1,58 +1,24 @@
 import requests
 import json
 from pathlib import Path
+import math
+from Json_handler import *
+from Constants import *
+top_players_dict = get_local_leaderboard(USA_LOCATION_ID)
 
-#This is the json web token generated from your developer.clashroyale.com account
-base_path = Path(__file__).parent
-token_path = base_path / "token.txt"
-file = open(token_path, "r")
-
-token = file.read().strip('\n')
-
-file.close()
-base_url = "https://api.clashroyale.com/v1"
-# This is an example of enpoint of the reqest, for more check the documentation
-endpoint = f"players"
-
-# Correct Authorization header looks like this: "Authorization: Bearer API_TOKEN".
-query = {"Authorization": f"Bearer {token}"}
-valid = False
-while not valid:
-    Player_id = input("Enter your ID: ")
-    if len(Player_id)  > 9 or len(Player_id) < 9 or Player_id[0] != "#":
-        print("Invalid ID")
-    else:
-        valid = True
-Valid_ID = "".join(["%23",Player_id[1:]]).upper()
-Final_url = "/".join([base_url,endpoint,Valid_ID,"battlelog"])
-print(Final_url)
-response = requests.get(Final_url, params=query)
-
-r: dict = response.json()  # Python object
-
-# Save the JSON to a file
-with open("clashApi/example_response.json", "w", encoding="utf-8") as response_file:
-    json.dump(r, response_file, indent=4)
-
-# Now re-open the file for reading
-with open("clashApi/example_response.json", "r", encoding="utf-8") as response_file:
-    Battles_json = json.load(response_file)
-
-# for key, value in Battles_json[0].items():
-#    print(f"{key} → {value}")
-##vlcqgjv0print(Battles_json[0]["opponent"][0])\
 cards_dict = {}
-index = 0
-for battle in range(len(Battles_json)):
-    for card_stats in Battles_json[battle]["opponent"][0]["cards"]:
+players = 0
+for player in range(len(top_players_dict["items"])):
+    players_stats_dict = (get_player_stats(top_players_dict["items"][player]["tag"]))
+    for card_stats in players_stats_dict["currentDeck"]:
         if cards_dict.get(card_stats["name"]) == None:
             cards_dict[card_stats["name"]] = 1
         else:
             cards_dict[card_stats["name"]] += 1
+    players += 1
 
-max_value = max(cards_dict.values())
-keys_with_max = [key for key, value in cards_dict.items() if value == max_value]
-for key in keys_with_max:
-    print(key,cards_dict[key])
-print(cards_dict) 
+cards_dict = dict(sorted(cards_dict.items(), key=lambda item: item[1], reverse=True))
+for key in cards_dict:
+    percent = math.floor(cards_dict[key] / players * 100)
+    print(F"{percent}% of players of the top players use {key}")
 
